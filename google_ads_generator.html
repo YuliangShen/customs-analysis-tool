@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Google Ads 文案生成器</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
+:root {
+  --bg:      #f7f5f0;
+  --bg2:     #ffffff;
+  --ink:     #1a1814;
+  --ink2:    #5a5650;
+  --ink3:    #9a9690;
+  --accent:  #e8401c;
+  --accent2: #f5a623;
+  --green:   #1a7a4a;
+  --border:  #e2ddd8;
+  --shadow:  0 2px 12px rgba(26,24,20,0.08);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Noto Sans SC', sans-serif;
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── header ── */
+.header {
+  background: var(--ink);
+  padding: 18px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.logo span { color: var(--accent); }
+.header-tag {
+  font-size: 11px;
+  color: var(--ink3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* ── layout ── */
+.wrap { max-width: 1100px; margin: 0 auto; padding: 48px 32px; }
+.grid { display: grid; grid-template-columns: 380px 1fr; gap: 32px; align-items: start; }
+
+/* ── panel ── */
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+.panel-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── form ── */
+label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink2);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+input, textarea, select {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-family: 'Noto Sans SC', sans-serif;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 16px;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+textarea { resize: vertical; min-height: 80px; }
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ── api key ── */
+.api-row { position: relative; }
+.api-row input { padding-right: 40px; margin-bottom: 0; }
+.eye-btn {
+  position: absolute; right: 12px; top: 10px;
+  background: none; border: none; cursor: pointer;
+  font-size: 16px; color: var(--ink3);
+}
+
+/* ── char counter ── */
+.char-limit {
+  font-size: 11px; color: var(--ink3);
+  text-align: right; margin-top: -12px; margin-bottom: 16px;
+}
+.char-limit.warn { color: var(--accent); }
+
+/* ── generate btn ── */
+.gen-btn {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 15px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: all 0.2s;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.gen-btn:hover { background: #c73515; transform: translateY(-1px); }
+.gen-btn:disabled { background: var(--ink3); cursor: not-allowed; transform: none; }
+
+/* ── spinner ── */
+.spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── result panel ── */
+.result-panel { display: none; }
+.result-panel.show { display: block; }
+
+/* ── section label ── */
+.sec-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 10px;
+}
+
+/* ── ad cards ── */
+.ad-cards { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+.ad-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s;
+}
+.ad-card:hover { box-shadow: 0 4px 20px rgba(26,24,20,0.12); }
+
+.ad-card-head {
+  background: var(--ink);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ad-card-num {
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.08em;
+}
+.ad-score {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+.score-high { background: rgba(26,122,74,0.3); color: #5dba87; }
+.score-mid  { background: rgba(245,166,35,0.2); color: #f5a623; }
+
+.ad-card-body { padding: 16px; }
+
+/* ── google preview ── */
+.google-preview {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+}
+.gp-url  { font-size: 12px; color: var(--green); margin-bottom: 4px; }
+.gp-title {
+  font-size: 18px;
+  color: #1a0dab;
+  font-weight: 400;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.gp-title:hover { text-decoration: underline; }
+.gp-desc { font-size: 13px; color: #4d5156; line-height: 1.5; }
+
+/* ── headline chips ── */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chip-len {
+  font-size: 10px;
+  color: var(--ink3);
+  background: var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+.chip-len.over { color: var(--accent); background: rgba(232,64,28,0.1); }
+
+/* ── desc list ── */
+.desc-list { display: flex; flex-direction: column; gap: 6px; }
+.desc-item {
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--ink2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.desc-len { font-size: 10px; color: var(--ink3); white-space: nowrap; }
+.desc-len.over { color: var(--accent); }
+
+/* ── actions ── */
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.btn-dl { background: var(--ink); color: #fff; }
+.btn-dl:hover { background: #333; }
+.btn-copy { background: var(--bg2); border: 1px solid var(--border); color: var(--ink2); }
+.btn-copy:hover { border-color: var(--ink); color: var(--ink); }
+.btn-regen { background: rgba(232,64,28,0.08); border: 1px solid rgba(232,64,28,0.2); color: var(--accent); }
+.btn-regen:hover { background: rgba(232,64,28,0.15); }
+
+/* ── json debug ── */
+.json-debug {
+  margin-top: 16px;
+  background: #1a1814;
+  border-radius: 10px;
+  padding: 16px;
+  display: none;
+}
+.json-debug.show { display: block; }
+.json-debug pre { font-family: 'Courier New', monospace; font-size: 11px; color: #a8e6bc; white-space: pre-wrap; word-break: break-word; }
+
+/* ── tip box ── */
+.tip {
+  background: rgba(26,122,74,0.06);
+  border: 1px solid rgba(26,122,74,0.2);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--green);
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+/* ── empty state ── */
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--ink3);
+}
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+
+/* ── progress ── */
+.progress {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  display: none;
+}
+.progress.show { display: block; }
+.prog-bar-bg { background: var(--border); border-radius: 4px; height: 4px; margin: 12px 0; overflow: hidden; }
+.prog-bar { height: 4px; background: var(--accent); border-radius: 4px; width: 0%; transition: width 0.4s; }
+.prog-label { font-size: 12px; color: var(--ink2); }
+
+/* ── toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--ink); color: #fff;
+  padding: 10px 18px; border-radius: 8px;
+  font-size: 13px;
+  transform: translateY(60px); opacity: 0;
+  transition: all 0.25s; z-index: 999;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">ADS<span>GEN</span></div>
+  <div class="header-tag">Google Ads · AI 文案批量生成器</div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- 左侧：输入表单 -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">⚙ 配置 & 输入</div>
+
+        <label>千问 API Key</label>
+        <div class="api-row" style="margin-bottom:16px">
+          <input type="password" id="api-key" placeholder="sk-xxxxxxxxxxxxxxxx">
+          <button class="eye-btn" onclick="toggleKey()">👁</button>
+        </div>
+
+        <label>产品 / 服务名称</label>
+        <input type="text" id="product" placeholder="例：低压断路器、工业用电缆" maxlength="50">
+
+        <label>核心卖点（每行一条）</label>
+        <textarea id="selling-points" placeholder="工厂直供，无中间商&#10;CE认证，符合国际标准&#10;支持OEM定制&#10;7天快速发货" rows="5"></textarea>
+
+        <label>目标受众</label>
+        <input type="text" id="audience" placeholder="例：采购商、工程师、外贸买家">
+
+        <div class="field-row">
+          <div>
+            <label>广告语言</label>
+            <select id="lang">
+              <option value="中文">中文</option>
+              <option value="英文" selected>英文</option>
+              <option value="中英双语">中英双语</option>
+            </select>
+          </div>
+          <div>
+            <label>生成组数</label>
+            <select id="count">
+              <option value="1">1 组</option>
+              <option value="3" selected>3 组</option>
+              <option value="5">5 组</option>
+            </select>
+          </div>
+        </div>
+
+        <label>落地页 URL（显示用）</label>
+        <input type="text" id="url" placeholder="www.yoursite.com/products">
+
+        <button class="gen-btn" id="gen-btn" onclick="generate()">
+          <div class="spinner" id="spinner"></div>
+          <span id="btn-text">🚀 生成广告文案</span>
+        </button>
+
+        <div class="tip">
+          📋 生成后点「下载 CSV」→ 打开 Google Ads Editor → 文件 → 导入 CSV，即可批量创建广告
+        </div>
+      </div>
+
+      <!-- JSON 调试面板 -->
+      <div class="panel" style="margin-top:16px">
+        <div class="panel-title" style="cursor:pointer;display:flex;justify-content:space-between" onclick="toggleDebug()">
+          <span>🔍 查看 AI 返回的原始 JSON</span>
+          <span id="debug-arrow">▶</span>
+        </div>
+        <div class="json-debug" id="json-debug">
+          <pre id="json-raw">// 生成后这里会显示 AI 返回的原始 JSON 数据\n// 这就是"结构化输出"的核心 — 让 AI 按固定格式返回，代码再解析</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：结果 -->
+    <div>
+      <div class="progress" id="progress">
+        <div style="font-size:24px;margin-bottom:8px">✍️</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:4px">AI 正在生成广告文案...</div>
+        <div class="prog-bar-bg"><div class="prog-bar" id="prog-bar"></div></div>
+        <div class="prog-label" id="prog-label">发送请求中...</div>
+      </div>
+
+      <div id="empty-state" class="panel empty">
+        <div class="empty-icon">📝</div>
+        <div class="empty-text">填写左侧表单，点击生成按钮<br>AI 将输出可直接导入 Google Ads 的文案</div>
+      </div>
+
+      <div class="result-panel" id="result-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div class="sec-label">生成结果</div>
+          <div style="font-size:12px;color:var(--ink3)" id="result-meta"></div>
+        </div>
+
+        <div class="ad-cards" id="ad-cards"></div>
+
+        <div class="actions">
+          <button class="btn btn-dl" onclick="downloadCSV()">📥 下载 CSV（导入 Google Ads）</button>
+          <button class="btn btn-copy" onclick="copyAll()">📋 复制所有文案</button>
+          <button class="btn btn-regen" onclick="generate()">🔄 重新生成</button>
+        </div>
+
+        <div class="tip" style="margin-top:16px">
+          <strong>导入步骤：</strong>打开 Google Ads Editor → 选择广告系列和广告组 → 文件 → 导入 → 选择下载的 CSV → 检查预览 → 上传发布
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let lastResult = null;
+
+// ── 生成 ──────────────────────────────────────
+async function generate() {
+  const apiKey  = document.getElementById('api-key').value.trim();
+  const product = document.getElementById('product').value.trim();
+  const points  = document.getElementById('selling-points').value.trim();
+  const audience= document.getElementById('audience').value.trim();
+  const lang    = document.getElementById('lang').value;
+  const count   = parseInt(document.getElementById('count').value);
+  const url     = document.getElementById('url').value.trim() || 'www.example.com';
+
+  if (!apiKey) { toast('请先填入千问 API Key'); return; }
+  if (!product) { toast('请填写产品名称'); return; }
+  if (!points)  { toast('请填写核心卖点'); return; }
+
+  setLoading(true);
+  showProgress('发送请求中...');
+
+  const prompt = `你是一名谷歌广告专家，请为以下产品生成 ${count} 组 Google Ads 响应式搜索广告文案。
+
+产品/服务：${product}
+目标受众：${audience || '采购商和企业买家'}
+核心卖点：
+${points}
+广告语言：${lang}
+
+严格要求：
+- 每组包含 15 条标题（headline），每条不超过 30 个字符（含空格）
+- 每组包含 4 条描述（description），每条不超过 90 个字符（含空格）
+- 标题要多样化，涵盖：品牌/产品名、卖点、行动号召、价格优势等不同角度
+- 描述要有说服力，包含卖点和行动引导
+
+只返回 JSON，不要任何解释文字，不要 markdown 代码块，格式严格如下：
+{
+  "ads": [
+    {
+      "headlines": ["标题1","标题2",...],
+      "descriptions": ["描述1","描述2","描述3","描述4"]
+    }
+  ]
+}`;
+
+  try {
+    updateProgress(30, '等待 AI 响应...');
+
+    const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'qwen-plus',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 3000,
+        temperature: 0.8
+      })
+    });
+
+    updateProgress(70, '解析返回数据...');
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || `HTTP ${response.status}`);
+    }
+
+    const raw = data.choices[0].message.content;
+
+    // 显示原始 JSON
+    document.getElementById('json-raw').textContent = raw;
+
+    // 清理并解析 JSON
+    const clean = raw.replace(/```json|```/g, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (e) {
+      // 尝试提取 JSON 块
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) parsed = JSON.parse(match[0]);
+      else throw new Error('AI 返回格式有误，请重试');
+    }
+
+    updateProgress(90, '渲染结果...');
+    lastResult = { ads: parsed.ads, product, url };
+    renderResult(parsed.ads, product, url, count);
+
+  } catch (err) {
+    setLoading(false);
+    hideProgress();
+    document.getElementById('empty-state').style.display = 'block';
+    if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+      toast('❌ API Key 错误，请检查');
+    } else if (err.message.includes('Failed to fetch')) {
+      toast('❌ 网络请求失败（CORS限制），请改用 Python 版本');
+      showCorsNote();
+    } else {
+      toast('❌ ' + err.message);
+    }
+  }
+}
+
+// ── 渲染结果 ──────────────────────────────────
+function renderResult(ads, product, url, count) {
+  setLoading(false);
+  hideProgress();
+  document.getElementById('empty-state').style.display = 'none';
+
+  const panel = document.getElementById('result-panel');
+  panel.classList.add('show');
+  document.getElementById('result-meta').textContent = `${ads.length} 组 · 共 ${ads.reduce((s,a)=>s+a.headlines.length,0)} 条标题`;
+
+  const container = document.getElementById('ad-cards');
+  container.innerHTML = ads.map((ad, i) => {
+    const previewTitle = ad.headlines.slice(0,3).join(' | ');
+    const previewDesc  = ad.descriptions[0] || '';
+    const allOk = ad.headlines.every(h => h.length <= 30);
+    const scoreClass = allOk ? 'score-high' : 'score-mid';
+    const scoreText  = allOk ? '✓ 字符合规' : '⚠ 部分超长';
+
+    const chips = ad.headlines.map(h => {
+      const over = h.length > 30;
+      return `<div class="chip">${h}<span class="chip-len ${over?'over':''}">${h.length}</span></div>`;
+    }).join('');
+
+    const descs = ad.descriptions.map(d => {
+      const over = d.length > 90;
+      return `<div class="desc-item"><span>${d}</span><span class="desc-len ${over?'over':''}">${d.length}/90</span></div>`;
+    }).join('');
+
+    return `
+    <div class="ad-card">
+      <div class="ad-card-head">
+        <span class="ad-card-num">AD GROUP ${String(i+1).padStart(2,'0')}</span>
+        <span class="ad-score ${scoreClass}">${scoreText}</span>
+      </div>
+      <div class="ad-card-body">
+        <div class="google-preview">
+          <div class="gp-url">广告 · ${url}</div>
+          <div class="gp-title">${previewTitle}</div>
+          <div class="gp-desc">${previewDesc}</div>
+        </div>
+        <div class="sec-label" style="margin-bottom:8px">全部标题（${ad.headlines.length}条）</div>
+        <div class="chips">${chips}</div>
+        <div class="sec-label" style="margin-bottom:8px;margin-top:12px">描述（${ad.descriptions.length}条）</div>
+        <div class="desc-list">${descs}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  toast('✅ 生成完成！');
+}
+
+// ── 下载 CSV ──────────────────────────────────
+function downloadCSV() {
+  if (!lastResult) return;
+  const { ads, product, url } = lastResult;
+
+  // Google Ads Editor 兼容格式
+  const rows = [
+    ['Campaign', 'Ad Group', 'Ad type', 'Final URL',
+     ...Array.from({length:15},(_,i)=>`Headline ${i+1}`),
+     ...Array.from({length:4}, (_,i)=>`Description ${i+1}`),
+     'Status']
+  ];
+
+  ads.forEach((ad, i) => {
+    const headlines = Array.from({length:15}, (_,j) => ad.headlines[j] || '');
+    const descs     = Array.from({length:4},  (_,j) => ad.descriptions[j] || '');
+    rows.push([
+      `${product} Campaign`,
+      `Ad Group ${i+1}`,
+      'Responsive search ad',
+      url.startsWith('http') ? url : 'https://' + url,
+      ...headlines,
+      ...descs,
+      'Paused'
+    ]);
+  });
+
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `google_ads_${product}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('✅ CSV 已下载');
+}
+
+// ── 复制全部 ──────────────────────────────────
+function copyAll() {
+  if (!lastResult) return;
+  const text = lastResult.ads.map((ad, i) => {
+    const h = ad.headlines.map((h,j) => `  标题${j+1}: ${h}`).join('\n');
+    const d = ad.descriptions.map((d,j) => `  描述${j+1}: ${d}`).join('\n');
+    return `【第${i+1}组】\n${h}\n${d}`;
+  }).join('\n\n');
+  navigator.clipboard.writeText(text).then(() => toast('✅ 已复制到剪贴板'));
+}
+
+// ── CORS 说明 ──────────────────────────────────
+function showCorsNote() {
+  const panel = document.getElementById('result-panel');
+  panel.classList.add('show');
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('ad-cards').innerHTML = `
+    <div class="panel" style="border-color:rgba(232,64,28,0.3)">
+      <div style="font-size:16px;margin-bottom:12px">⚠️ 浏览器限制说明</div>
+      <p style="color:var(--ink2);line-height:1.8;font-size:13px">
+        千问 API 不允许从本地 HTML 文件直接调用（CORS 限制，这是浏览器的安全机制）。<br><br>
+        <strong>解决方案：</strong>把这个工具改成 Python 脚本版运行即可。逻辑完全一样，只是换个运行环境。<br><br>
+        你已经学会了最重要的部分：<br>
+        ✅ 如何构造 prompt 要求 AI 返回 JSON<br>
+        ✅ JSON 解析的原理<br>
+        ✅ CSV 格式如何对应 Google Ads 字段
+      </p>
+    </div>`;
+}
+
+// ── UI helpers ──────────────────────────────────
+function setLoading(on) {
+  const btn  = document.getElementById('gen-btn');
+  const spin = document.getElementById('spinner');
+  const txt  = document.getElementById('btn-text');
+  btn.disabled = on;
+  spin.style.display = on ? 'block' : 'none';
+  txt.textContent = on ? '生成中...' : '🚀 生成广告文案';
+}
+
+function showProgress(label) {
+  const p = document.getElementById('progress');
+  p.classList.add('show');
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('prog-label').textContent = label;
+}
+
+function updateProgress(pct, label) {
+  document.getElementById('prog-bar').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = label;
+}
+
+function hideProgress() {
+  document.getElementById('progress').classList.remove('show');
+}
+
+function toggleKey() {
+  const inp = document.getElementById('api-key');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function toggleDebug() {
+  const box = document.getElementById('json-debug');
+  const arrow = document.getElementById('debug-arrow');
+  box.classList.toggle('show');
+  arrow.textContent = box.classList.contains('show') ? '▼' : '▶';
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>海关数据智能分析系统</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+
+:root {
+  --bg:       #0a0e1a;
+  --bg2:      #111827;
+  --bg3:      #1a2235;
+  --border:   #1e2d45;
+  --gold:     #c9a84c;
+  --gold2:    #e8c97a;
+  --blue:     #3b82f6;
+  --green:    #10b981;
+  --purple:   #8b5cf6;
+  --red:      #ef4444;
+  --amber:    #f59e0b;
+  --text:     #e2e8f0;
+  --text2:    #94a3b8;
+  --text3:    #475569;
+  --radius:   10px;
+  --mono:     'DM Mono', monospace;
+  --sans:     'Noto Sans SC', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, #0d1526 0%, #111827 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon { font-size: 28px; }
+.logo-text { font-size: 18px; font-weight: 700; color: var(--gold); letter-spacing: 0.02em; }
+.logo-sub  { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 1px; }
+.header-badge {
+  background: rgba(201,168,76,0.1);
+  border: 1px solid rgba(201,168,76,0.3);
+  color: var(--gold);
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-family: var(--mono);
+}
+
+/* ── Layout ── */
+.main { max-width: 1400px; margin: 0 auto; padding: 32px 40px; }
+
+/* ── Upload Zone ── */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 60px 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: var(--bg2);
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(201,168,76,0.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--gold); background: rgba(201,168,76,0.04); }
+.upload-icon { font-size: 48px; margin-bottom: 16px; }
+.upload-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.upload-sub { color: var(--text2); font-size: 13px; }
+.upload-btn {
+  display: inline-block;
+  margin-top: 20px;
+  background: linear-gradient(135deg, var(--gold), var(--gold2));
+  color: #0a0e1a;
+  padding: 10px 28px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.upload-btn:hover { opacity: 0.85; }
+#file-input { display: none; }
+
+/* ── Metrics ── */
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 28px 0; }
+.metric-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.metric-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent, var(--gold));
+}
+.metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: var(--mono); }
+.metric-val   { font-size: 28px; font-weight: 700; color: var(--text); margin: 6px 0 2px; font-family: var(--mono); }
+.metric-sub   { font-size: 11px; color: var(--text2); }
+
+/* ── Section ── */
+.section { margin-bottom: 36px; }
+.section-title {
+  font-size: 15px; font-weight: 600; color: var(--gold);
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px; margin-bottom: 16px;
+  letter-spacing: 0.02em;
+}
+.section-title span { font-size: 18px; }
+
+/* ── Tabs ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.tab-btn {
+  padding: 8px 20px; font-size: 13px; cursor: pointer;
+  border: none; background: none;
+  color: var(--text2); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; font-family: var(--sans);
+  transition: color 0.2s;
+}
+.tab-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Charts ── */
+.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.chart-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.chart-box.full { grid-column: 1 / -1; }
+.chart-title { font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 14px; font-family: var(--mono); }
+.chart-wrap { position: relative; height: 280px; }
+.chart-wrap.tall { height: 340px; }
+
+/* ── Table ── */
+.tbl-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead th {
+  background: var(--bg3); color: var(--text2);
+  padding: 10px 14px; text-align: left; font-weight: 500;
+  font-family: var(--mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--gold); }
+tbody tr { border-bottom: 1px solid rgba(30,45,69,0.6); transition: background 0.15s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(201,168,76,0.04); }
+tbody td { padding: 9px 14px; color: var(--text); vertical-align: top; }
+tbody td.num { font-family: var(--mono); text-align: right; color: var(--gold2); }
+tbody td.dim { color: var(--text2); font-size: 12px; }
+.rank { display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: var(--bg3); color: var(--text2); font-size: 10px; font-family: var(--mono); text-align: center; line-height: 22px; }
+.rank.top3 { background: rgba(201,168,76,0.2); color: var(--gold); }
+
+/* ── AI Box ── */
+.ai-box {
+  background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(139,92,246,0.06));
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+.ai-box pre {
+  white-space: pre-wrap; word-break: break-word;
+  font-family: var(--sans); font-size: 13.5px;
+  color: var(--text); line-height: 1.8;
+}
+.ai-prompt-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 16px;
+}
+.ai-prompt-box textarea {
+  width: 100%; background: none; border: none; outline: none;
+  color: var(--text2); font-size: 12px; font-family: var(--mono);
+  resize: vertical; min-height: 160px; line-height: 1.6;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 20px; border-radius: 8px; font-size: 13px;
+  font-weight: 600; cursor: pointer; border: none;
+  transition: all 0.2s; font-family: var(--sans);
+}
+.btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold2)); color: #0a0e1a; }
+.btn-gold:hover { opacity: 0.85; }
+.btn-outline { background: none; border: 1px solid var(--border); color: var(--text2); }
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-blue { background: rgba(59,130,246,0.15); border: 1px solid rgba(59,130,246,0.3); color: #60a5fa; }
+.btn-blue:hover { background: rgba(59,130,246,0.25); }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+/* ── Progress ── */
+.progress-wrap { margin: 24px 0; display: none; }
+.progress-bar-bg { background: var(--bg3); border-radius: 4px; height: 4px; overflow: hidden; }
+.progress-bar { height: 4px; background: linear-gradient(90deg, var(--gold), var(--gold2)); border-radius: 4px; transition: width 0.4s; width: 0%; }
+.progress-label { font-size: 12px; color: var(--text2); margin-top: 8px; font-family: var(--mono); }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 20px;
+  font-size: 13px; color: var(--text);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  transform: translateY(80px); opacity: 0;
+  transition: all 0.3s; z-index: 999;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Hidden ── */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🌍</div>
+    <div>
+      <div class="logo-text">海关数据智能分析系统</div>
+      <div class="logo-sub">CUSTOMS TRADE INTELLIGENCE · LOCAL EDITION</div>
+    </div>
+  </div>
+  <div class="header-badge">v2.0 · 本地运行</div>
+</header>
+
+<div class="main">
+
+  <!-- Upload -->
+  <div id="upload-section">
+    <div class="upload-zone" id="drop-zone">
+      <div class="upload-icon">📂</div>
+      <div class="upload-title">上传海关数据 Excel 文件</div>
+      <div class="upload-sub">支持多 Sheet（按国家分 Sheet）· .xlsx · .xls · 所有 Sheet 自动合并分析</div>
+      <label class="upload-btn" for="file-input">选择文件</label>
+      <input type="file" id="file-input" accept=".xlsx,.xls">
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-bar-bg"><div class="progress-bar" id="progress-bar"></div></div>
+    <div class="progress-label" id="progress-label">正在读取文件...</div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+
+    <!-- Metrics -->
+    <div class="metrics" id="metrics-row"></div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('overview')">📊 市场对比</button>
+      <button class="tab-btn" onclick="switchTab('trend')">📈 月度趋势</button>
+      <button class="tab-btn" onclick="switchTab('buyers')">👤 采购商</button>
+      <button class="tab-btn" onclick="switchTab('suppliers')">🏭 供应商</button>
+      <button class="tab-btn" onclick="switchTab('hs')">📦 HS编码</button>
+      <button class="tab-btn" onclick="switchTab('ai')">🤖 AI分析</button>
+    </div>
+
+    <!-- Tab: 市场对比 -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="chart-grid">
+        <div class="chart-box full">
+          <div class="chart-title">各国家/市场 — 总金额对比</div>
+          <div class="chart-wrap"><canvas id="chart-sheets-amount"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">各市场 — 交易次数</div>
+          <div class="chart-wrap"><canvas id="chart-sheets-count"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">各市场 — 采购商数量</div>
+          <div class="chart-wrap"><canvas id="chart-sheets-buyers"></canvas></div>
+        </div>
+      </div>
+      <div class="section" style="margin-top:20px">
+        <div class="section-title"><span>📋</span>各国家市场汇总</div>
+        <div class="tbl-wrap" id="tbl-sheets"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 月度趋势 -->
+    <div class="tab-panel" id="tab-trend">
+      <div class="chart-box full" style="margin-bottom:16px">
+        <div class="chart-title">月度交易金额 + 交易次数趋势</div>
+        <div class="chart-wrap tall"><canvas id="chart-trend"></canvas></div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span>📋</span>月度数据明细</div>
+        <div class="tbl-wrap" id="tbl-trend"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 采购商 -->
+    <div class="tab-panel" id="tab-buyers">
+      <div class="chart-box full" style="margin-bottom:16px">
+        <div class="chart-title">Top 15 采购商 — 总金额排名</div>
+        <div class="chart-wrap tall"><canvas id="chart-buyers"></canvas></div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span>📋</span>采购商详情（Top 30）</div>
+        <div class="tbl-wrap" id="tbl-buyers"></div>
+      </div>
+    </div>
+
+    <!-- Tab: 供应商 -->
+    <div class="tab-panel" id="tab-suppliers">
+      <div class="chart-box full" style="margin-bottom:16px">
+        <div class="chart-title">Top 15 供应商 — 总金额排名</div>
+        <div class="chart-wrap tall"><canvas id="chart-suppliers"></canvas></div>
+      </div>
+      <div class="section">
+        <div class="section-title"><span>📋</span>供应商详情（Top 30）</div>
+        <div class="tbl-wrap" id="tbl-suppliers"></div>
+      </div>
+    </div>
+
+    <!-- Tab: HS编码 -->
+    <div class="tab-panel" id="tab-hs">
+      <div class="chart-grid">
+        <div class="chart-box">
+          <div class="chart-title">Top 10 HS编码 — 金额占比</div>
+          <div class="chart-wrap tall"><canvas id="chart-hs-pie"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title">Top 10 HS编码 — 金额排名</div>
+          <div class="chart-wrap tall"><canvas id="chart-hs-bar"></canvas></div>
+        </div>
+      </div>
+      <div class="section" style="margin-top:16px">
+        <div class="section-title"><span>📋</span>HS编码详情（Top 20）</div>
+        <div class="tbl-wrap" id="tbl-hs"></div>
+      </div>
+    </div>
+
+    <!-- Tab: AI分析 -->
+    <div class="tab-panel" id="tab-ai">
+      <div class="section">
+        <div class="section-title"><span>🤖</span>AI 分析摘要提示词</div>
+        <div class="ai-box">
+          <pre id="ai-summary-text"></pre>
+        </div>
+        <div class="ai-prompt-box">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">▼ 完整提示词（复制后粘贴到 Claude / 千问 / DeepSeek）</div>
+          <textarea id="ai-prompt-full" readonly></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-gold" onclick="copyPrompt()">📋 复制提示词</button>
+          <a class="btn btn-blue" href="https://chat.qwen.ai" target="_blank">🔗 打开千问</a>
+          <a class="btn btn-blue" href="https://claude.ai" target="_blank">🔗 打开 Claude</a>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--text3)">
+          💡 由于浏览器安全限制，本地 HTML 无法直接调用 AI API。复制上方提示词，粘贴到任意 AI 工具即可获得完整分析报告。
+        </div>
+      </div>
+    </div>
+
+    <!-- Download -->
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="font-size:13px;color:var(--text2)">报告包含：各国家对比 · 月度趋势 · 采购商排名 · 供应商排名 · HS编码分析</div>
+      <button class="btn btn-gold" onclick="downloadExcel()" style="font-size:14px;padding:11px 28px">
+        📥 下载 Excel 分析报告
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+// 全局状态
+// ─────────────────────────────────────────────
+let G = { df: [], sheetNames: [], buyers: [], suppliers: [], trends: [], hsCodes: [], sheetStats: [] };
+let charts = {};
+
+// ─────────────────────────────────────────────
+// 上传 & 拖拽
+// ─────────────────────────────────────────────
+const dropZone  = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+
+fileInput.onchange = e => processFile(e.target.files[0]);
+dropZone.onclick   = () => fileInput.click();
+dropZone.ondragover  = e => { e.preventDefault(); dropZone.classList.add('drag'); };
+dropZone.ondragleave = () => dropZone.classList.remove('drag');
+dropZone.ondrop = e => { e.preventDefault(); dropZone.classList.remove('drag'); processFile(e.dataTransfer.files[0]); };
+
+// ─────────────────────────────────────────────
+// 进度条
+// ─────────────────────────────────────────────
+function setProgress(pct, label) {
+  const wrap = document.getElementById('progress-wrap');
+  wrap.style.display = 'block';
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-label').textContent = label;
+}
+
+// ─────────────────────────────────────────────
+// 读取 & 解析 Excel
+// ─────────────────────────────────────────────
+function processFile(file) {
+  if (!file) return;
+  setProgress(10, '正在读取文件...');
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    setProgress(30, '正在解析 Excel...');
+    const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+    G.sheetNames = wb.SheetNames;
+
+    const rows = [];
+    wb.SheetNames.forEach(name => {
+      const ws = wb.Sheets[name];
+      const data = XLSX.utils.sheet_to_json(ws, { raw: false, defval: '' });
+      data.forEach(r => { r['来源国家Sheet'] = name; rows.push(r); });
+    });
+
+    setProgress(55, `合并 ${G.sheetNames.length} 个 Sheet，共 ${rows.length} 条记录...`);
+
+    // 字段标准化
+    G.df = rows.map(r => ({
+      日期:        toDate(r['日期']),
+      进口国地区:  str(r['进口国/地区'] || r['进口国'] || ''),
+      采购商:      str(r['采购商']),
+      销售国地区:  str(r['销售国/地区'] || r['销售国'] || ''),
+      供应商:      str(r['供应商']),
+      原产国:      str(r['原产国/地区'] || r['原产国'] || ''),
+      HS编码:      str(r['HS编码'] || r['hs编码'] || ''),
+      产品描述:    str(r['产品描述']),
+      贸易类型:    str(r['贸易类型']),
+      数量:        toNum(r['数量']),
+      金额:        toNum(r['金额']),
+      重量:        toNum(r['重量']),
+      来源Sheet:   r['来源国家Sheet'],
+    }));
+
+    setProgress(70, '正在统计分析...');
+    runAnalysis();
+    setProgress(90, '正在渲染图表...');
+    setTimeout(() => {
+      renderAll();
+      document.getElementById('progress-wrap').style.display = 'none';
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('upload-section').classList.add('hidden');
+      toast('✅ 分析完成！共 ' + G.df.length + ' 条记录');
+    }, 100);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function str(v) { return String(v || '').trim(); }
+function toNum(v) { const n = parseFloat(String(v).replace(/,/g, '')); return isNaN(n) ? 0 : n; }
+function toDate(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const d = new Date(v);
+  return isNaN(d) ? null : d;
+}
+function fmtNum(n) { return n == null ? '-' : Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 0 }); }
+function fmtDate(d) { if (!d) return '-'; try { return d.toISOString().slice(0,7); } catch { return '-'; } }
+
+// ─────────────────────────────────────────────
+// 分析
+// ─────────────────────────────────────────────
+function runAnalysis() {
+  const df = G.df;
+
+  // 采购商
+  const bMap = {};
+  df.forEach(r => {
+    if (!r.采购商) return;
+    if (!bMap[r.采购商]) bMap[r.采购商] = { 采购商: r.采购商, 交易次数: 0, 总金额: 0, 总数量: 0, 产品集: new Set(), 国家集: new Set() };
+    const b = bMap[r.采购商];
+    b.交易次数++; b.总金额 += r.金额; b.总数量 += r.数量;
+    if (r.产品描述) b.产品集.add(r.产品描述);
+    if (r.进口国地区) b.国家集.add(r.进口国地区);
+  });
+  G.buyers = Object.values(bMap).map(b => ({ ...b, 涉及产品: [...b.产品集].slice(0,3).join('、'), 进口国家: [...b.国家集].slice(0,3).join('、') }))
+    .sort((a,b) => b.总金额 - a.总金额).slice(0,30);
+
+  // 供应商
+  const sMap = {};
+  df.forEach(r => {
+    const key = r.供应商 + '|' + r.销售国地区;
+    if (!r.供应商) return;
+    if (!sMap[key]) sMap[key] = { 供应商: r.供应商, 销售国地区: r.销售国地区, 交易次数: 0, 总金额: 0, 产品集: new Set(), 客户集: new Set() };
+    const s = sMap[key];
+    s.交易次数++; s.总金额 += r.金额;
+    if (r.产品描述) s.产品集.add(r.产品描述);
+    if (r.采购商) s.客户集.add(r.采购商);
+  });
+  G.suppliers = Object.values(sMap).map(s => ({ ...s, 主要产品: [...s.产品集].slice(0,3).join('、'), 主要客户: [...s.客户集].slice(0,3).join('、') }))
+    .sort((a,b) => b.总金额 - a.总金额).slice(0,30);
+
+  // 月度趋势
+  const tMap = {};
+  df.forEach(r => {
+    if (!r.日期) return;
+    const m = fmtDate(r.日期);
+    if (!tMap[m]) tMap[m] = { 月份: m, 交易次数: 0, 总金额: 0, 采购商集: new Set(), 供应商集: new Set() };
+    tMap[m].交易次数++; tMap[m].总金额 += r.金额;
+    tMap[m].采购商集.add(r.采购商); tMap[m].供应商集.add(r.供应商);
+  });
+  G.trends = Object.values(tMap).sort((a,b) => a.月份.localeCompare(b.月份))
+    .map(t => ({ ...t, 活跃采购商: t.采购商集.size, 活跃供应商: t.供应商集.size }));
+
+  // HS编码
+  const hMap = {};
+  df.forEach(r => {
+    const key = r.HS编码 + '|' + r.产品描述;
+    if (!hMap[key]) hMap[key] = { HS编码: r.HS编码, 产品描述: r.产品描述, 交易次数: 0, 总金额: 0, 采购商集: new Set() };
+    hMap[key].交易次数++; hMap[key].总金额 += r.金额; hMap[key].采购商集.add(r.采购商);
+  });
+  G.hsCodes = Object.values(hMap).map(h => ({ ...h, 采购商数量: h.采购商集.size }))
+    .sort((a,b) => b.总金额 - a.总金额).slice(0,20);
+
+  // Sheet 统计
+  const stMap = {};
+  df.forEach(r => {
+    const k = r.来源Sheet;
+    if (!stMap[k]) stMap[k] = { 国家: k, 交易次数: 0, 总金额: 0, 最大单笔: 0, 采购商集: new Set(), 供应商集: new Set() };
+    stMap[k].交易次数++; stMap[k].总金额 += r.金额;
+    if (r.金额 > stMap[k].最大单笔) stMap[k].最大单笔 = r.金额;
+    stMap[k].采购商集.add(r.采购商); stMap[k].供应商集.add(r.供应商);
+  });
+  G.sheetStats = Object.values(stMap).map(s => ({ ...s, 采购商数量: s.采购商集.size, 供应商数量: s.供应商集.size,
+    平均单笔: s.总金额 / s.交易次数 })).sort((a,b) => b.总金额 - a.总金额);
+}
+
+// ─────────────────────────────────────────────
+// 渲染
+// ─────────────────────────────────────────────
+function renderAll() {
+  renderMetrics();
+  renderSheetCharts();
+  renderTrendChart();
+  renderBuyersChart();
+  renderSuppliersChart();
+  renderHsCharts();
+  renderTables();
+  renderAIPrompt();
+}
+
+const COLORS = ['#c9a84c','#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899','#84cc16','#f97316'];
+
+function mkChart(id, config) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+function renderMetrics() {
+  const df = G.df;
+  const total = df.reduce((s,r) => s + r.金额, 0);
+  const dates = df.map(r => r.日期).filter(Boolean).sort((a,b)=>a-b);
+  const range = dates.length ? `${fmtDate(dates[0])} ~ ${fmtDate(dates[dates.length-1])}` : '-';
+  const metrics = [
+    { label:'总记录数', val: df.length.toLocaleString(), sub: range, accent:'#c9a84c' },
+    { label:'总交易金额', val: fmtNum(total), sub:'所有市场合计', accent:'#3b82f6' },
+    { label:'采购商数量', val: new Set(df.map(r=>r.采购商)).size, sub:'潜在客户', accent:'#10b981' },
+    { label:'供应商数量', val: new Set(df.map(r=>r.供应商)).size, sub:'竞争对手', accent:'#8b5cf6' },
+    { label:'覆盖市场', val: G.sheetNames.length, sub: G.sheetNames.join(' · '), accent:'#f59e0b' },
+  ];
+  document.getElementById('metrics-row').innerHTML = metrics.map(m =>
+    `<div class="metric-card" style="--accent:${m.accent}">
+      <div class="metric-label">${m.label}</div>
+      <div class="metric-val">${m.val}</div>
+      <div class="metric-sub">${m.sub}</div>
+    </div>`).join('');
+}
+
+function renderSheetCharts() {
+  const ss = G.sheetStats;
+  const labels = ss.map(s => s.国家);
+  const base = { borderRadius: 6, borderWidth: 0 };
+  const gridColor = 'rgba(30,45,69,0.8)';
+  const tickColor = '#475569';
+  const opts = (title) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmtNum(c.raw) } } },
+    scales: {
+      x: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } },
+      y: { ticks: { color: tickColor, font: { size: 11 }, callback: v => fmtNum(v) }, grid: { color: gridColor } }
+    }
+  });
+
+  mkChart('chart-sheets-amount', { type:'bar', data:{ labels, datasets:[{ data: ss.map(s=>s.总金额), backgroundColor: COLORS, ...base }] }, options: opts('金额') });
+  mkChart('chart-sheets-count',  { type:'bar', data:{ labels, datasets:[{ data: ss.map(s=>s.交易次数), backgroundColor: COLORS, ...base }] }, options: opts('交易次数') });
+  mkChart('chart-sheets-buyers', { type:'bar', data:{ labels, datasets:[{ data: ss.map(s=>s.采购商数量), backgroundColor: COLORS, ...base }] }, options: opts('采购商数') });
+}
+
+function renderTrendChart() {
+  const t = G.trends;
+  mkChart('chart-trend', {
+    type: 'bar',
+    data: {
+      labels: t.map(r => r.月份),
+      datasets: [
+        { type:'line', label:'总金额', data: t.map(r=>r.总金额), borderColor:'#c9a84c', backgroundColor:'rgba(201,168,76,0.1)', borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#c9a84c', fill:true, yAxisID:'y' },
+        { type:'bar',  label:'交易次数', data: t.map(r=>r.交易次数), backgroundColor:'rgba(59,130,246,0.3)', borderRadius:4, yAxisID:'y2' }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#94a3b8', font:{size:12} } } },
+      scales:{
+        x: { ticks:{color:'#475569',font:{size:10}}, grid:{color:'rgba(30,45,69,0.8)'} },
+        y: { position:'left', ticks:{color:'#c9a84c',callback:v=>fmtNum(v),font:{size:10}}, grid:{color:'rgba(30,45,69,0.8)'} },
+        y2:{ position:'right', ticks:{color:'#3b82f6',font:{size:10}}, grid:{display:false} }
+      }
+    }
+  });
+}
+
+function hBarOpts(color) {
+  return {
+    indexAxis:'y', responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>' '+fmtNum(c.raw)}} },
+    scales:{
+      x:{ ticks:{color:'#475569',callback:v=>fmtNum(v),font:{size:10}}, grid:{color:'rgba(30,45,69,0.8)'} },
+      y:{ ticks:{color:'#94a3b8',font:{size:11}}, grid:{display:false} }
+    }
+  };
+}
+
+function renderBuyersChart() {
+  const top = G.buyers.slice(0,15).reverse();
+  mkChart('chart-buyers', { type:'bar', data:{ labels:top.map(r=>r.采购商.slice(0,22)), datasets:[{ data:top.map(r=>r.总金额), backgroundColor:'#3b82f6', borderRadius:4, borderWidth:0 }] }, options: hBarOpts('#3b82f6') });
+}
+
+function renderSuppliersChart() {
+  const top = G.suppliers.slice(0,15).reverse();
+  mkChart('chart-suppliers', { type:'bar', data:{ labels:top.map(r=>r.供应商.slice(0,22)), datasets:[{ data:top.map(r=>r.总金额), backgroundColor:'#8b5cf6', borderRadius:4, borderWidth:0 }] }, options: hBarOpts('#8b5cf6') });
+}
+
+function renderHsCharts() {
+  const top = G.hsCodes.slice(0,10);
+  const labels = top.map(r => (r.HS编码 + ' ' + r.产品描述).slice(0,18));
+  mkChart('chart-hs-pie', {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data:top.map(r=>r.总金额), backgroundColor:COLORS, borderWidth:2, borderColor:'#0a0e1a' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'#94a3b8',font:{size:10},boxWidth:12}} } }
+  });
+  const topB = top.slice().reverse();
+  mkChart('chart-hs-bar', {
+    type:'bar',
+    data:{ labels:topB.map(r=>r.HS编码), datasets:[{ data:topB.map(r=>r.总金额), backgroundColor:COLORS.slice().reverse(), borderRadius:4, borderWidth:0 }] },
+    options:{ ...hBarOpts('#f59e0b'), plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmtNum(c.raw)}}} }
+  });
+}
+
+// ─────────────────────────────────────────────
+// 表格
+// ─────────────────────────────────────────────
+function mkTable(rows, cols) {
+  const head = cols.map(c => `<th>${c.label}</th>`).join('');
+  const body = rows.map((r,i) => {
+    const cells = cols.map(c => {
+      const v = r[c.key];
+      if (c.rank) return `<td><span class="rank ${i<3?'top3':''}">${i+1}</span></td>`;
+      if (c.num)  return `<td class="num">${fmtNum(v)}</td>`;
+      if (c.dim)  return `<td class="dim">${v||'-'}</td>`;
+      return `<td>${v||'-'}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+function renderTables() {
+  document.getElementById('tbl-sheets').innerHTML = mkTable(G.sheetStats, [
+    {key:'rank',label:'#',rank:true},
+    {key:'国家',label:'国家/市场'},
+    {key:'总金额',label:'总金额',num:true},
+    {key:'交易次数',label:'交易次数',num:true},
+    {key:'采购商数量',label:'采购商数',num:true},
+    {key:'供应商数量',label:'供应商数',num:true},
+    {key:'平均单笔',label:'平均单笔金额',num:true},
+    {key:'最大单笔',label:'最大单笔',num:true},
+  ]);
+
+  document.getElementById('tbl-trend').innerHTML = mkTable(G.trends, [
+    {key:'月份',label:'月份'},
+    {key:'总金额',label:'总金额',num:true},
+    {key:'交易次数',label:'交易次数',num:true},
+    {key:'活跃采购商',label:'活跃采购商',num:true},
+    {key:'活跃供应商',label:'活跃供应商',num:true},
+  ]);
+
+  document.getElementById('tbl-buyers').innerHTML = mkTable(G.buyers, [
+    {key:'rank',label:'#',rank:true},
+    {key:'采购商',label:'采购商'},
+    {key:'总金额',label:'总金额',num:true},
+    {key:'交易次数',label:'交易次数',num:true},
+    {key:'总数量',label:'总数量',num:true},
+    {key:'进口国家',label:'进口国家',dim:true},
+    {key:'涉及产品',label:'涉及产品',dim:true},
+  ]);
+
+  document.getElementById('tbl-suppliers').innerHTML = mkTable(G.suppliers, [
+    {key:'rank',label:'#',rank:true},
+    {key:'供应商',label:'供应商'},
+    {key:'销售国地区',label:'销售国',dim:true},
+    {key:'总金额',label:'总金额',num:true},
+    {key:'交易次数',label:'交易次数',num:true},
+    {key:'主要客户',label:'主要客户',dim:true},
+    {key:'主要产品',label:'主要产品',dim:true},
+  ]);
+
+  document.getElementById('tbl-hs').innerHTML = mkTable(G.hsCodes, [
+    {key:'rank',label:'#',rank:true},
+    {key:'HS编码',label:'HS编码'},
+    {key:'产品描述',label:'产品描述'},
+    {key:'总金额',label:'总金额',num:true},
+    {key:'交易次数',label:'交易次数',num:true},
+    {key:'采购商数量',label:'采购商数',num:true},
+  ]);
+}
+
+// ─────────────────────────────────────────────
+// AI 提示词生成
+// ─────────────────────────────────────────────
+function renderAIPrompt() {
+  const df = G.df;
+  const total = df.reduce((s,r)=>s+r.金额,0);
+  const dates = df.map(r=>r.日期).filter(Boolean).sort((a,b)=>a-b);
+  const range = dates.length ? `${fmtDate(dates[0])} 至 ${fmtDate(dates[dates.length-1])}` : '未知';
+
+  let summary = `【数据概况】\n`;
+  summary += `共 ${df.length} 条记录，时间范围：${range}\n`;
+  summary += `总金额：${fmtNum(total)}，采购商 ${new Set(df.map(r=>r.采购商)).size} 家，供应商 ${new Set(df.map(r=>r.供应商)).size} 家\n`;
+  summary += `覆盖市场：${G.sheetNames.join('、')}\n\n`;
+
+  summary += `【各市场对比 TOP5】\n`;
+  G.sheetStats.slice(0,5).forEach(s => {
+    summary += `  ${s.国家}：金额 ${fmtNum(s.总金额)}，${s.交易次数} 笔，${s.采购商数量} 家采购商\n`;
+  });
+
+  summary += `\n【TOP5 采购商】\n`;
+  G.buyers.slice(0,5).forEach((b,i) => {
+    summary += `  ${i+1}. ${b.采购商}：金额 ${fmtNum(b.总金额)}，${b.交易次数} 次，产品：${b.涉及产品}\n`;
+  });
+
+  summary += `\n【TOP5 供应商（竞争对手）】\n`;
+  G.suppliers.slice(0,5).forEach((s,i) => {
+    summary += `  ${i+1}. ${s.供应商}（${s.销售国地区}）：金额 ${fmtNum(s.总金额)}，客户：${s.主要客户}\n`;
+  });
+
+  summary += `\n【近6个月趋势】\n`;
+  G.trends.slice(-6).forEach(t => {
+    summary += `  ${t.月份}：金额 ${fmtNum(t.总金额)}，${t.交易次数} 笔，${t.活跃采购商} 家采购商\n`;
+  });
+
+  summary += `\n【TOP5 HS编码】\n`;
+  G.hsCodes.slice(0,5).forEach((h,i) => {
+    summary += `  ${i+1}. ${h.HS编码} ${h.产品描述}：金额 ${fmtNum(h.总金额)}，${h.采购商数量} 家客户\n`;
+  });
+
+  document.getElementById('ai-summary-text').textContent = summary;
+
+  const prompt = `你是一位资深外贸行业分析师，请根据以下海关数据给出专业分析报告。
+
+${summary}
+
+请从以下四个角度详细分析（每点150字左右）：
+1. 【潜在客户机会】哪些采购商最值得优先开发？理由是什么？如何切入？
+2. 【竞争对手洞察】主要供应商的市场策略和竞争特点，我方如何差异化？
+3. 【市场趋势判断】各市场整体走势、季节性规律、风险点在哪里？
+4. 【具体业务建议】给出5条可落地执行的开发建议，越具体越好。
+
+用中文回答，语言专业、数据驱动、观点鲜明。`;
+
+  document.getElementById('ai-prompt-full').value = prompt;
+}
+
+function copyPrompt() {
+  const txt = document.getElementById('ai-prompt-full').value;
+  navigator.clipboard.writeText(txt).then(() => toast('✅ 提示词已复制，去粘贴到 AI 工具吧！'));
+}
+
+// ─────────────────────────────────────────────
+// 下载 Excel
+// ─────────────────────────────────────────────
+function downloadExcel() {
+  toast('⏳ 正在生成 Excel...');
+  const wb = XLSX.utils.book_new();
+
+  function addSheet(name, rows, cols) {
+    const data = [cols.map(c=>c.label), ...rows.map(r=>cols.map(c=>r[c.key]??''))];
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(data), name);
+  }
+
+  addSheet('各国家市场对比', G.sheetStats, [
+    {key:'国家',label:'国家/市场'},{key:'总金额',label:'总金额'},{key:'交易次数',label:'交易次数'},
+    {key:'采购商数量',label:'采购商数量'},{key:'供应商数量',label:'供应商数量'},{key:'平均单笔',label:'平均单笔金额'},{key:'最大单笔',label:'最大单笔'}
+  ]);
+  addSheet('月度趋势', G.trends, [
+    {key:'月份',label:'月份'},{key:'总金额',label:'总金额'},{key:'交易次数',label:'交易次数'},
+    {key:'活跃采购商',label:'活跃采购商'},{key:'活跃供应商',label:'活跃供应商'}
+  ]);
+  addSheet('潜在客户排名', G.buyers, [
+    {key:'采购商',label:'采购商'},{key:'总金额',label:'总金额'},{key:'交易次数',label:'交易次数'},
+    {key:'总数量',label:'总数量'},{key:'进口国家',label:'进口国家'},{key:'涉及产品',label:'涉及产品'}
+  ]);
+  addSheet('竞争对手排名', G.suppliers, [
+    {key:'供应商',label:'供应商'},{key:'销售国地区',label:'销售国'},{key:'总金额',label:'总金额'},
+    {key:'交易次数',label:'交易次数'},{key:'主要客户',label:'主要客户'},{key:'主要产品',label:'主要产品'}
+  ]);
+  addSheet('HS编码分析', G.hsCodes, [
+    {key:'HS编码',label:'HS编码'},{key:'产品描述',label:'产品描述'},{key:'总金额',label:'总金额'},
+    {key:'交易次数',label:'交易次数'},{key:'采购商数量',label:'采购商数量'}
+  ]);
+
+  // AI 提示词 sheet
+  const aiSheet = XLSX.utils.aoa_to_sheet([['AI分析提示词（复制到AI工具使用）'],[document.getElementById('ai-prompt-full').value]]);
+  XLSX.utils.book_append_sheet(wb, aiSheet, 'AI分析提示词');
+
+  const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb, `海关分析报告_${date}.xlsx`);
+  setTimeout(() => toast('✅ 报告已下载！'), 500);
+}
+
+// ─────────────────────────────────────────────
+// Tab 切换
+// ─────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    const ids = ['overview','trend','buyers','suppliers','hs','ai'];
+    b.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ─────────────────────────────────────────────
+// Toast
+// ─────────────────────────────────────────────
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
