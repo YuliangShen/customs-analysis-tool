@@ -1,2 +1,1 @@
-# customs-analysis-tool
-海关数据AI智能分析系统 · Python + Streamlit + 千问API
+# 🌍 海关数据 AI 智能分析系统 > 上传海关原始 Excel 数据，自动生成多维度分析报告，支持 AI 洞察与一键下载。 ## 功能 - 支持多 Sheet（按国家分 Sheet），自动合并分析 - 4 个维度：采购商排名 / 竞争对手分析 / 月度趋势 / HS 编码分布 - 接入千问 API，自动生成 AI 分析结论 - 输出带图表的 Excel 报告 ## 三个版本 | 版本 | 文件 | 使用方式 | |------|------|---------| | 本地脚本版 | `customs_analyzer_charts.py` | `python customs_analyzer_charts.py` | | 网页版 | `customs_web.py` | `streamlit run customs_web.py` | | 单文件版 | `customs_analysis.html` | 双击浏览器打开 | ## 快速开始 ```bash pip install pandas openpyxl openai matplotlib streamlit ``` 在脚本中填入千问 API Key，运行即可。 ## 技术栈 Python · Pandas · Matplotlib · Streamlit · 千问 API · HTML/JS · SheetJS
