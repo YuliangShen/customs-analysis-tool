@@ -1,56 +1,34 @@
-# 🤖 AI 自动化工具集
+# 海关数据 AI 智能分析系统
 
-> 基于 Python + 千问 API 构建的两款 AI 自动化工具，覆盖外贸数据分析与谷歌广告文案生成场景。
+> 外贸业务场景下的真实工具：上传海关原始 Excel，自动生成多维度分析报告 + AI 文字洞察。
 
-## 📦 项目一：海关数据 AI 智能分析系统
+## 背景
 
-上传海关原始 Excel 数据，自动生成多维度分析报告，支持 AI 洞察与一键下载。
+做外贸时每次分析采购商数据，都要手动整理多个国家的 Excel Sheet，再用透视表逐个做排名，重复且耗时。这个工具把整个流程自动化——上传文件，几秒内输出带图表的完整报告，并调用 AI 生成中文分析结论。
 
-### 功能
-- 支持多 Sheet（按国家分 Sheet），自动合并分析
-- 4 个维度：采购商排名 / 竞争对手分析 / 月度趋势 / HS 编码分布
-- 接入千问 API，自动生成 AI 分析结论
-- 输出带图表的 Excel 报告
+## 功能
 
-### 三个版本
+- 支持多 Sheet 合并分析（按国家分 Sheet 的海关数据格式）
+- 四个维度：采购商排名 / 竞争对手分析 / 月度趋势 / HS 编码分布
+- 接入千问 API，自动输出 AI 分析结论
+- 输出带图表的 Excel 报告，支持 CSV 下载
 
-| 版本 | 文件 | 使用方式 |
-|------|------|---------|
-| 本地脚本版 | `customs_analyzer_charts.py` | `python customs_analyzer_charts.py` |
-| 网页版 | `customs_web.py` | `streamlit run customs_web.py` |
-| 单文件版 | `customs_analysis.html` | 双击浏览器打开，无需安装 |
+## 三个版本
 
-### 快速开始
+| 版本 | 文件 | 适用场景 |
+|------|------|----------|
+| 本地脚本版 | `customs_analyzer_charts.py` | 有 Python 环境，处理大量数据 |
+| 网页版 | `customs_web.py` | 浏览器上传，团队共用 |
+| 单文件版 | `customs_analysis.html` | 双击即用，无需安装任何环境 |
+
+## 快速开始
 
 ```bash
 pip install pandas openpyxl openai matplotlib streamlit
 ```
 
-在脚本中将 `your_api_key_here` 替换为真实的千问 API Key，运行即可。
+将代码中的 `your_api_key_here` 替换为千问 API Key，运行即可。
 
----
+## 技术栈
 
-## 📢 项目二：Google Ads 文案批量生成器
-
-输入产品信息，AI 批量生成符合 Google Ads 字符限制的广告标题和描述，一键导出 CSV 直接导入 Google Ads Editor。
-
-### 功能
-- 输入产品名称、卖点、目标受众，AI 自动生成多组广告文案
-- 实时字符计数，标红超过限制的标题（标题 ≤30字符，描述 ≤90字符）
-- Google 广告预览效果展示
-- 导出标准 CSV，兼容 Google Ads Editor 批量导入格式
-- 展示 AI 返回的原始 JSON，可学习结构化输出原理
-
-### 使用方式
-
-直接双击 `google_ads_generator.html` 用浏览器打开，填入千问 API Key 即可使用，无需安装任何环境。
-
----
-
-## 🛠 技术栈
-
-Python · Pandas · Matplotlib · Streamlit · 千问 API（兼容 OpenAI 格式）· HTML/JS · SheetJS · Chart.js
-
-## ⚠️ 注意
-
-API Key 请勿硬写在代码中，使用前将 `your_api_key_here` 替换为真实 Key（本地运行），GitHub 上保持占位符。
+Python · Pandas · Matplotlib · Streamlit · 千问 API（兼容 OpenAI 格式）· HTML / JS
